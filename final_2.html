@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="black">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExoWorld | 探索微縮生態</title>
+    
+    <!-- 引入 Tailwind CSS 與 DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 Google Fonts (Noto Sans TC) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- 引入 Font Awesome 圖標 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- 自定義配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        serif: ['"Playfair Display"', 'serif'],
+                    },
+                    colors: {
+                        aqua: '#2dd4bf',    /* 水族代表色 Teal-400 */
+                        terra: '#fb923c',   /* 兩棲代表色 Orange-400 */
+                        darkbg: '#0a0a0a',
+                        cardbg: '#1a1a1a',
+                    },
+                    animation: {
+                        'slide-in-right': 'slideInRight 0.5s ease-out forwards',
+                        'bounce-subtle': 'bounceSubtle 2s infinite',
+                    },
+                    keyframes: {
+                        slideInRight: {
+                            '0%': { transform: 'translateX(100%)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' },
+                        },
+                        bounceSubtle: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            background-image: radial-gradient(circle at 50% 0%, #1a2e35 0%, #050505 60%);
+            min-height: 100vh;
+        }
+        
+        .text-glow {
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .glass-nav {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* 物種按鈕特效 */
+        .species-btn {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap; /* 防止文字換行 */
+        }
+        .species-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0%;
+            height: 2px;
+            background-color: currentColor;
+            transition: width 0.3s ease;
+        }
+        .species-btn.active::after {
+            width: 100%;
+        }
+        
+        /* 影片容器 RWD */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: #000;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .category-card:hover img {
+            transform: scale(1.05);
+        }
+
+        /* 自定義捲軸 */
+        .scrolling-wrapper {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+        }
+        .scrolling-wrapper::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        /* 類別卡片特效 */
+        .category-card-hover {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .category-card-hover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+        .category-card-hover:hover .category-bg {
+            transform: scale(1.1);
+            filter: brightness(0.8);
+        }
+
+        /* 搜尋結果下拉選單動畫 */
+        #search-results {
+            scrollbar-width: thin;
+            scrollbar-color: #333 #111;
+        }
+        #search-results::-webkit-scrollbar {
+            width: 8px;
+        }
+        #search-results::-webkit-scrollbar-track {
+            background: #111;
+        }
+        #search-results::-webkit-scrollbar-thumb {
+            background-color: #333;
+            border-radius: 20px;
+        }
+
+        /* --- 新增：深海氣泡動畫特效 --- */
+        .bubbles-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            top: 0;
+            left: 0;
+            pointer-events: none; /* 讓點擊可以穿透 */
+            z-index: 1; /* 在背景圖之上，文字之下 */
+        }
+        
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background-color: rgba(255, 255, 255, 0.15); /* 半透明白 */
+            border-radius: 50%;
+            opacity: 0;
+            animation: rise 15s infinite ease-in;
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
+        }
+
+        .bubble:nth-child(odd) {
+            background-color: rgba(45, 212, 191, 0.1); /* 偶爾出現一點 Aqua 色氣泡 */
+        }
+
+        @keyframes rise {
+            0% {
+                bottom: -100px;
+                transform: translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(30px);
+            }
+            100% {
+                bottom: 120%; /* 飄出螢幕上方 */
+                transform: translateX(-30px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-300 font-sans antialiased selection:bg-aqua selection:text-black">
+
+    <!-- 導航欄 -->
+    <div class="navbar fixed top-0 z-50 glass-nav h-20">
+        <div class="container mx-auto px-4">
+            <div class="flex-1">
+                <a class="btn btn-ghost text-2xl font-serif tracking-widest text-white hover:bg-transparent" href="#" onclick="location.reload()">
+                    EXO<span class="text-aqua">WORLD</span>
+                </a>
+            </div>
+            
+            <div class="flex-none hidden md:block">
+                <ul class="menu menu-horizontal px-1 font-medium tracking-wide">
+                    <li><a class="hover:text-aqua transition-colors cursor-pointer" onclick="resetToCategories(); document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'})">首頁</a></li>
+                    <li><a class="hover:text-aqua transition-colors cursor-pointer" onclick="selectCategory('aquarium'); document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'})">水族圖鑑</a></li>
+                    <li><a class="hover:text-terra transition-colors cursor-pointer" onclick="selectCategory('amphibian'); document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'})">兩棲圖鑑</a></li>
+                    <!-- 修改：綁定造景美學切換功能 -->
+                    <li><a class="hover:text-white transition-colors cursor-pointer" onclick="showLandscapingView(); document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'})">造景美學</a></li>
+                </ul>
+            </div>
+
+            <!-- 新增：特寵醫療搜寻 (Vet Finder) -->
+            <div class="flex-none ml-2">
+                <div class="tooltip tooltip-bottom" data-tip="特寵醫療地圖">
+                    <button class="btn btn-ghost btn-circle text-red-400 hover:bg-red-500/20 hover:text-red-400" onclick="document.getElementById('vet_modal').showModal()">
+                        <i class="fa-solid fa-suitcase-medical text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 通知中心鈴鐺 -->
+            <div class="flex-none ml-2">
+                <div class="dropdown dropdown-end">
+                    <div tabindex="0" role="button" class="btn btn-ghost btn-circle group">
+                        <div class="indicator">
+                            <i class="fa-solid fa-bell text-xl text-gray-300 group-hover:text-white transition-colors"></i>
+                            <span class="badge badge-xs badge-error indicator-item animate-pulse"></span>
+                        </div>
+                    </div>
+                    <div tabindex="0" class="mt-3 z-[1] card card-compact dropdown-content w-80 bg-[#1a1a1a]/95 backdrop-blur-xl border border-gray-700 shadow-2xl">
+                        <div class="card-body">
+                            <h3 class="font-bold text-lg text-white flex items-center gap-2 border-b border-gray-700 pb-2">
+                                <i class="fa-solid fa-bullhorn text-aqua"></i> 最新展覽資訊
+                            </h3>
+                            <ul class="flex flex-col gap-3 mt-2 max-h-60 overflow-y-auto" id="notification-list">
+                                <!-- 由 JS 動態生成 -->
+                            </ul>
+                            <div class="card-actions justify-end mt-2 pt-2 border-t border-gray-700">
+                                <button class="btn btn-xs btn-ghost text-gray-500 hover:text-white" onclick="document.querySelector('.dropdown').removeAttribute('open')">關閉</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-none md:hidden ml-2">
+                <button class="btn btn-square btn-ghost text-white">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="hero min-h-screen relative overflow-hidden flex flex-col justify-center">
+        
+        <!-- 背景圖層 -->
+        <div class="absolute inset-0 z-0">
+            <!-- 稍微換了一張更有深海感的圖片，讓氣泡更明顯 -->
+            <img src="https://images.unsplash.com/photo-1546284687-353279c61453?q=80&w=2000&auto=format&fit=crop" 
+                 class="w-full h-full object-cover opacity-60" 
+                 alt="Aquarium background">
+            <!-- 加深漸層，讓氣泡亮起來 -->
+            <div class="absolute inset-0 bg-gradient-to-b from-black/50 via-[#0a192f]/60 to-[#050505]"></div>
+        </div>
+
+        <!-- 新增：氣泡動態層 (模擬魚缸打氣) -->
+        <div class="bubbles-container">
+            <!-- 生成不同大小、位置、速度的氣泡 -->
+            <div class="bubble" style="width: 40px; height: 40px; left: 10%; animation-duration: 8s; animation-delay: 0s;"></div>
+            <div class="bubble" style="width: 20px; height: 20px; left: 20%; animation-duration: 12s; animation-delay: 2s;"></div>
+            <div class="bubble" style="width: 50px; height: 50px; left: 35%; animation-duration: 15s; animation-delay: 4s;"></div>
+            <div class="bubble" style="width: 80px; height: 80px; left: 50%; animation-duration: 18s; animation-delay: 1s;"></div>
+            <div class="bubble" style="width: 35px; height: 35px; left: 55%; animation-duration: 10s; animation-delay: 5s;"></div>
+            <div class="bubble" style="width: 25px; height: 25px; left: 65%; animation-duration: 14s; animation-delay: 3s;"></div>
+            <div class="bubble" style="width: 60px; height: 60px; left: 75%; animation-duration: 20s; animation-delay: 6s;"></div>
+            <div class="bubble" style="width: 30px; height: 30px; left: 85%; animation-duration: 11s; animation-delay: 2.5s;"></div>
+            <div class="bubble" style="width: 45px; height: 45px; left: 90%; animation-duration: 16s; animation-delay: 0.5s;"></div>
+            <div class="bubble" style="width: 15px; height: 15px; left: 15%; animation-duration: 9s; animation-delay: 7s;"></div>
+        </div>
+
+        <div class="hero-content text-center text-neutral-content z-10 relative mt-16 w-full max-w-4xl px-4">
+            <div class="max-w-3xl mx-auto">
+                <div class="inline-block px-4 py-1 border border-white/20 rounded-full text-sm text-gray-300 mb-6 backdrop-blur-md animate-bounce-subtle cursor-pointer hover:bg-white/10 transition-colors" onclick="toggleNewsToast()">
+                    🔔 近期熱門：2025 台中冬季寵物用品博覽會 (12/25-28)
+                </div>
+                <h1 class="mb-5 text-5xl md:text-7xl font-bold text-white font-serif tracking-tight text-glow">
+                    探索微縮生態
+                </h1>
+                <p class="mb-8 text-lg md:text-xl text-gray-300 font-light leading-relaxed">
+                    在玻璃牆內，構建一個完美的異世界。<br>
+                    您可以搜尋「新手」、「紅色」或「免打氣」來尋找適合的夥伴。
+                </p>
+                
+                <!-- 搜尋模組 -->
+                <div class="relative max-w-2xl mx-auto mb-6 group z-50">
+                    <div class="flex items-center bg-white/10 backdrop-blur-md rounded-full border border-white/20 p-2 shadow-2xl focus-within:bg-black/80 focus-within:border-aqua transition-all duration-300">
+                        
+                        <!-- 搜尋分類選擇 -->
+                        <div class="dropdown dropdown-hover">
+                            <div tabindex="0" role="button" class="btn btn-ghost btn-circle btn-sm text-gray-400 hover:text-white" id="search-filter-btn">
+                                <i class="fa-solid fa-filter"></i>
+                            </div>
+                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-gray-900 rounded-box w-32 border border-gray-700 mt-2">
+                                <li><a onclick="setSearchFilter('all')">全部</a></li>
+                                <li><a onclick="setSearchFilter('aquarium')" class="text-aqua">水族</a></li>
+                                <li><a onclick="setSearchFilter('amphibian')" class="text-terra">兩棲</a></li>
+                            </ul>
+                        </div>
+
+                        <!-- 搜尋輸入框 -->
+                        <input type="text" 
+                               id="search-input"
+                               placeholder="搜尋物種名稱 (ex: 守宮)..." 
+                               class="bg-transparent border-none text-white w-full px-4 focus:ring-0 placeholder-gray-500"
+                               autocomplete="off">
+                        
+                        <button class="btn btn-circle btn-ghost text-aqua hover:bg-aqua/20">
+                            <i class="fa-solid fa-search text-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- 搜尋結果下拉 (Autocomplete) -->
+                    <div id="search-results" class="absolute left-0 right-0 top-full mt-2 bg-gray-900/95 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl overflow-y-auto max-h-80 hidden">
+                        <!-- 結果將由 JS 動態填入 -->
+                    </div>
+                    
+                    <!-- 搜尋過濾器提示 -->
+                    <div id="filter-tag" class="absolute -bottom-8 left-4 text-xs text-gray-500 opacity-0 transition-opacity">
+                        搜尋範圍: 全部
+                    </div>
+                </div>
+
+                <!-- 新增：個性化推薦按鈕區 -->
+                <div class="flex justify-center gap-4 mb-10">
+                    <button onclick="document.getElementById('recommendation_modal').showModal()" 
+                            class="btn btn-sm md:btn-md btn-ghost text-gray-300 hover:text-white border border-white/10 hover:border-aqua/50 hover:bg-aqua/10 rounded-full gap-2 transition-all">
+                        <i class="fa-solid fa-wand-magic-sparkles text-yellow-400"></i>
+                        不知道養什麼？測測你的命定寵物
+                    </button>
+                </div>
+
+                <div class="flex gap-4 justify-center">
+                    <button onclick="document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'}); resetToCategories();" 
+                            class="btn btn-outline border-aqua text-aqua hover:bg-aqua hover:text-black hover:border-aqua px-8 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(45,212,191,0.2)]">
+                        瀏覽全部分類
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce text-gray-500">
+            <i class="fa-solid fa-chevron-down"></i>
+        </div>
+    </div>
+
+    <!-- 新增：自動推播 Toast 通知 (右下角) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 transform translate-x-full transition-transform duration-500 ease-out">
+        <div class="bg-[#1a1a1a]/95 backdrop-blur-md border-l-4 border-terra text-white p-4 rounded-lg shadow-2xl max-w-xs md:max-w-sm flex items-start gap-3 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-1 cursor-pointer text-gray-500 hover:text-white" onclick="hideToast()">
+                <i class="fa-solid fa-times"></i>
+            </div>
+            <div class="text-terra text-xl mt-1">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm text-gray-200">展覽速報</h4>
+                <p class="text-sm font-medium mt-1">
+                    <span class="text-terra">12/25 - 12/28</span><br>
+                    2025 台中冬季寵物用品博覽會<br>
+                    <span class="text-xs text-gray-400 mt-1 block">地點：臺中國際展覽館 (上聯)</span>
+                </p>
+                <div class="mt-2 flex gap-2">
+                    <button class="btn btn-xs btn-outline border-terra text-terra hover:bg-terra hover:border-terra hover:text-black" onclick="window.open('https://tcpet-fair.top-link.com.tw/home', '_blank')">查看官網</button>
+                    <button class="btn btn-xs btn-ghost text-gray-400" onclick="hideToast()">稍後再說</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：特寵醫療地圖 Modal -->
+    <dialog id="vet_modal" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box bg-[#1a1a1a] border border-gray-700 w-11/12 max-w-3xl">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            
+            <div class="text-center mb-6">
+                <h3 class="font-bold text-2xl text-white mb-2">
+                    <i class="fa-solid fa-user-doctor text-red-400 mr-2"></i>全台特寵/水族醫療資源網
+                </h3>
+                <p class="text-gray-400 text-sm">
+                    注意：特殊寵物醫療資源稀缺，建議就診前先致電確認醫師班表。<br>
+                    <span class="text-red-400 text-xs">*本資料僅供參考，實際看診項目以院方公告為準。</span>
+                </p>
+            </div>
+
+            <!-- 篩選器 -->
+            <div class="flex flex-wrap gap-2 justify-center mb-6">
+                <select id="vet-region" class="select select-bordered select-sm bg-gray-800 text-white" onchange="filterVets()">
+                    <option value="all">全台灣</option>
+                    <option value="north">北部地區</option>
+                    <option value="central">中部地區</option>
+                    <option value="south">南部地區</option>
+                </select>
+                <select id="vet-type" class="select select-bordered select-sm bg-gray-800 text-white" onchange="filterVets()">
+                    <option value="all">所有科別</option>
+                    <option value="reptile">爬蟲/兩棲專科</option>
+                    <option value="aquatic">魚類/水族專科</option>
+                </select>
+            </div>
+
+            <!-- 醫院列表 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2" id="vet-list">
+                <!-- JS 動態生成 -->
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- 新增：個性化推薦 Modal -->
+    <dialog id="recommendation_modal" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box bg-[#1a1a1a] border border-gray-700">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="font-bold text-2xl text-white mb-2 text-center">
+                <i class="fa-solid fa-user-astronaut text-aqua mr-2"></i>你的飼養風格是？
+            </h3>
+            <p class="py-4 text-center text-gray-400">點擊最符合你的描述，我們將為你推薦適合的夥伴！</p>
+            
+            <div class="grid grid-cols-2 gap-4 mt-2">
+                <button onclick="performRecommendation('lazy')" class="btn h-auto py-4 bg-gray-800 border-gray-700 hover:border-aqua hover:bg-gray-700 flex flex-col gap-2 group">
+                    <i class="fa-solid fa-couch text-2xl text-gray-500 group-hover:text-aqua transition-colors"></i>
+                    <span class="text-white">我是懶人 / 很忙</span>
+                    <span class="text-xs text-gray-500 font-normal">一週餵一次就好</span>
+                </button>
+                
+                <button onclick="performRecommendation('interactive')" class="btn h-auto py-4 bg-gray-800 border-gray-700 hover:border-terra hover:bg-gray-700 flex flex-col gap-2 group">
+                    <i class="fa-solid fa-hand-holding-heart text-2xl text-gray-500 group-hover:text-terra transition-colors"></i>
+                    <span class="text-white">我喜歡互動</span>
+                    <span class="text-xs text-gray-500 font-normal">想要可以上手的</span>
+                </button>
+
+                <button onclick="performRecommendation('office')" class="btn h-auto py-4 bg-gray-800 border-gray-700 hover:border-blue-400 hover:bg-gray-700 flex flex-col gap-2 group">
+                    <i class="fa-solid fa-building text-2xl text-gray-500 group-hover:text-blue-400 transition-colors"></i>
+                    <span class="text-white">辦公室療癒</span>
+                    <span class="text-xs text-gray-500 font-normal">安靜、體積小</span>
+                </button>
+
+                <button onclick="performRecommendation('cool')" class="btn h-auto py-4 bg-gray-800 border-gray-700 hover:border-purple-400 hover:bg-gray-700 flex flex-col gap-2 group">
+                    <i class="fa-solid fa-dragon text-2xl text-gray-500 group-hover:text-purple-400 transition-colors"></i>
+                    <span class="text-white">帥氣 / 特別</span>
+                    <span class="text-xs text-gray-500 font-normal">想養點不一樣的</span>
+                </button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <!-- 主要互動介面 (ID changed from species-section) -->
+    <div class="bg-gradient-to-b from-[#050505] to-[#111] py-24 min-h-screen" id="main-interface">
+        <div class="container mx-auto px-4 max-w-6xl">
+            
+            <!-- 網站說明區塊 (這是您要求的「首頁說明」) -->
+            <div class="text-center mb-16 animate-fade-in-up">
+                <h2 class="text-3xl md:text-4xl font-serif text-white mb-6">關於 ExoWorld</h2>
+                <div class="max-w-3xl mx-auto">
+                    <p class="text-gray-400 text-lg leading-relaxed">
+                        歡迎來到 ExoWorld 微縮生態圖鑑。這是一個專為初學者與愛好者打造的知識平台，
+                        我們整理了市面上最受歡迎的物種，提供一目瞭然的飼養數據（溫度、pH值、環境佈置）
+                        以及精選的教學影片。請從下方選擇您感興趣的生態領域，開始您的探索之旅。
+                    </p>
+                </div>
+            </div>
+
+            <!-- VIEW 1: 類別選擇 (預設顯示) -->
+            <div id="category-view" class="transition-all duration-500 opacity-100 transform translate-y-0">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    
+                    <!-- 水族類別卡片 (圖片已更換為角蛙圖) -->
+                    <div class="category-card-hover group relative h-96 rounded-2xl overflow-hidden cursor-pointer border border-gray-800" onclick="selectCategory('aquarium')">
+                        <img src="https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?q=80&w=1000&auto=format&fit=crop" 
+                             class="category-bg absolute inset-0 w-full h-full object-cover transition-transform duration-700" 
+                             alt="Aquarium">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
+                        <div class="absolute bottom-0 left-0 p-8">
+                            <div class="text-aqua mb-2 font-bold tracking-widest text-sm uppercase">Aquarium</div>
+                            <h3 class="text-4xl font-serif text-white font-bold mb-4">水族世界</h3>
+                            <p class="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform translate-y-4 group-hover:translate-y-0">
+                                探索斑斕的熱帶魚與蝦類，<br>打造生機勃勃的水下花園。
+                            </p>
+                            <div class="mt-6 flex items-center text-aqua font-bold group-hover:translate-x-2 transition-transform">
+                                進入圖鑑 <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 兩棲爬蟲類別卡片 (圖片已更換為斑馬魚圖) -->
+                    <div class="category-card-hover group relative h-96 rounded-2xl overflow-hidden cursor-pointer border border-gray-800" onclick="selectCategory('amphibian')">
+                        <img src="https://images.unsplash.com/photo-1656927483465-c697bd2fea7e?fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000" 
+                             class="category-bg absolute inset-0 w-full h-full object-cover transition-transform duration-700" 
+                             alt="Amphibian">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
+                        <div class="absolute bottom-0 left-0 p-8">
+                            <div class="text-terra mb-2 font-bold tracking-widest text-sm uppercase">Amphibians & Reptiles</div>
+                            <h3 class="text-4xl font-serif text-white font-bold mb-4">兩棲爬蟲</h3>
+                            <p class="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform translate-y-4 group-hover:translate-y-0">
+                                從角蛙到蠑螈，<br>感受獨特且迷人的異寵魅力。
+                            </p>
+                            <div class="mt-6 flex items-center text-terra font-bold group-hover:translate-x-2 transition-transform">
+                                進入圖鑑 <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- VIEW 3 (NEW): 造景美學 (Landscaping View) -->
+            <div id="landscaping-view" class="hidden opacity-0 transition-all duration-500 transform translate-y-10">
+                
+                <!-- Header -->
+                <div class="text-center mb-12 relative">
+                    <!-- 已移除返回按鈕，讓標題區塊更乾淨 -->
+                    <h2 class="text-4xl font-serif text-white font-bold tracking-wide">Nature in a Box</h2>
+                    <p class="text-gray-400 mt-4 max-w-2xl mx-auto">
+                        造景不僅是為了美觀，更是為了模擬生物的原生環境。<br>
+                        選擇一種風格，為你的夥伴打造夢幻家園。
+                    </p>
+                </div>
+
+                <!-- 風格卡片 Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="landscaping-grid">
+                    <!-- JS 動態生成 -->
+                </div>
+
+                <!-- 風格詳情 Modal -->
+                <dialog id="style_modal" class="modal">
+                    <div class="modal-box w-11/12 max-w-4xl bg-[#1a1a1a] p-0 overflow-hidden border border-gray-700 flex flex-col md:flex-row">
+                        <div class="w-full md:w-1/2 h-64 md:h-auto">
+                            <img id="style-modal-img" src="" class="w-full h-full object-cover">
+                        </div>
+                        <div class="w-full md:w-1/2 p-8 flex flex-col">
+                            <h3 id="style-modal-title" class="text-3xl font-serif font-bold text-white mb-2"></h3>
+                            <div class="flex gap-2 mb-4" id="style-modal-tags"></div>
+                            <p id="style-modal-desc" class="text-gray-300 leading-relaxed mb-6 flex-grow"></p>
+                            
+                            <div class="bg-black/30 p-4 rounded-xl border border-white/5">
+                                <h4 class="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">關鍵元素 (Key Elements)</h4>
+                                <ul id="style-modal-elements" class="text-sm text-gray-300 grid grid-cols-2 gap-2"></ul>
+                            </div>
+                            
+                            <div class="modal-action">
+                                <form method="dialog">
+                                    <button class="btn btn-ghost text-gray-400 hover:text-white">關閉</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
+
+            </div>
+
+            <!-- VIEW 2: 物種詳細列表 (預設隱藏) -->
+            <div id="species-view" class="hidden opacity-0 transition-all duration-500 transform translate-y-10">
+                
+                <!-- 返回按鈕列 -->
+                <div class="mb-8 flex items-center">
+                    <button onclick="resetToCategories()" class="btn btn-ghost gap-2 text-gray-400 hover:text-white group">
+                        <i class="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+                        返回分類選擇
+                    </button>
+                    <div class="ml-auto text-sm text-gray-500" id="current-category-label">
+                        目前瀏覽：水族
+                    </div>
+                </div>
+
+                <!-- 物種切換選單 (可橫向捲動) -->
+                <div class="relative max-w-4xl mx-auto mb-16">
+                    <!-- 漸層遮罩 -->
+                    <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none md:hidden"></div>
+                    <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none md:hidden"></div>
+                    
+                    <div id="species-buttons-container" class="scrolling-wrapper flex overflow-x-auto gap-3 pb-4 px-4 md:justify-center md:flex-wrap snap-x">
+                        <!-- 由 JS 動態生成 -->
+                    </div>
+                </div>
+
+                <!-- 主要內容區 (Detail Content) -->
+                <div class="flex flex-col gap-10 transition-all duration-500" id="species-content">
+                    
+                    <!-- 1. 上方區塊：文字介紹 -->
+                    <div class="w-full">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <div class="badge badge-outline mb-2" id="species-type-badge">分類</div>
+                                <h2 class="text-4xl md:text-5xl font-serif text-white font-bold tracking-wide mb-1">
+                                    <span id="species-name">載入中...</span> 
+                                </h2>
+                                <span class="text-xl text-gray-500 italic font-serif" id="species-sci-name">學名</span>
+                            </div>
+                            <div class="text-right hidden md:block">
+                                <span class="text-xs text-gray-500 block mb-1">資料來源 (Data Source)</span>
+                                <span class="badge badge-outline text-gray-400" id="data-source">載入中...</span>
+                            </div>
+                        </div>
+                        <p class="text-gray-400 mb-2 leading-relaxed text-lg border-l-4 border-gray-700 pl-6" id="species-desc">
+                            描述載入中...
+                        </p>
+                    </div>
+
+                    <!-- 2. 下方區塊：視覺與數據 -->
+                    <div class="flex flex-col xl:flex-row items-stretch gap-12">
+                        
+                        <!-- 左側：圖片與數據 -->
+                        <div class="xl:w-5/12 w-full">
+                            <div class="card bg-cardbg shadow-2xl border border-gray-800 overflow-hidden relative group h-full">
+                                <figure class="relative h-64 md:h-72 overflow-hidden flex-shrink-0">
+                                    <img src="" alt="Species Image" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" id="species-image">
+                                    <div class="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
+                                        <span class="text-xs text-gray-300">飼養難度</span>
+                                        <div class="text-yellow-400 text-sm" id="difficulty-stars"></div>
+                                    </div>
+                                </figure>
+                                <div class="card-body p-6">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                                    <i class="fa-solid fa-temperature-half"></i>
+                                                </div>
+                                                <span class="text-sm text-gray-400">適合溫度</span>
+                                            </div>
+                                            <div class="text-2xl font-bold text-white pl-1" id="stat-temp">--°C</div>
+                                        </div>
+                                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                                                    <i class="fa-solid fa-droplet"></i>
+                                                </div>
+                                                <span class="text-sm text-gray-400" id="stat-env-label">水質/濕度</span>
+                                            </div>
+                                            <div class="text-xl font-bold text-white pl-1" id="stat-env-val">--</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 右側：影片 -->
+                        <div class="xl:w-7/12 w-full flex flex-col">
+                            <div class="bg-cardbg rounded-2xl border border-gray-800 p-6 h-full flex flex-col justify-center">
+                                <div class="flex justify-between items-end mb-4">
+                                    <h3 class="text-white font-bold flex items-center gap-2">
+                                        <i class="fa-brands fa-youtube text-red-500"></i> 精選飼養教學影片
+                                    </h3>
+                                    <a id="video-fallback-link" href="#" target="_blank" class="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i> 在 YouTube 上觀看
+                                    </a>
+                                </div>
+                                <div class="video-container bg-black border border-gray-800 w-full relative">
+                                    <iframe id="species-video" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                                </div>
+                                
+                                <!-- 新增：多影片切換按鈕區 -->
+                                <div id="video-switcher" class="flex gap-2 mt-3 overflow-x-auto pb-1 hidden">
+                                    <!-- 按鈕將由 JS 動態生成 -->
+                                </div>
+
+                                <div class="mt-3 flex items-center justify-between text-xs border-t border-gray-800 pt-3">
+                                    <div class="text-gray-500 flex items-center">
+                                        <i class="fa-solid fa-video mr-2 text-gray-600"></i>
+                                        影片授權/來源頻道：
+                                        <span id="video-source-label" class="text-gray-300 font-medium ml-1">載入中...</span>
+                                    </div>
+                                    <div class="md:hidden text-gray-600">
+                                        Data Source: <span id="data-source-mobile"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer p-10 bg-black text-neutral-content border-t border-gray-900 mt-20">
+        <aside>
+            <div class="text-3xl font-serif text-white mb-2">EXO<span class="text-aqua">WORLD</span></div>
+            <p>Exploring the Micro-Ecosystems.<br>Designed for Aquarium & Terrarium Hobbyists.</p>
+        </aside> 
+        <nav>
+            <header class="footer-title text-gray-500">物種分類</header> 
+            <a class="link link-hover">熱帶魚類</a>
+            <a class="link link-hover">兩棲爬蟲</a>
+            <a class="link link-hover">水草造景</a>
+        </nav> 
+        <nav>
+            <header class="footer-title text-gray-500">聯絡我們</header> 
+            <div class="grid grid-flow-col gap-4">
+                <a class="text-2xl hover:text-aqua cursor-pointer"><i class="fa-brands fa-instagram"></i></a>
+                <a class="text-2xl hover:text-aqua cursor-pointer"><i class="fa-brands fa-facebook"></i></a>
+            </div>
+        </nav>
+    </footer>
+
+    <!-- JavaScript 邏輯：內建數據與渲染 -->
+    <script>
+        // 最新消息資料庫
+        const newsData = [
+            {
+                title: "2025 台中冬季寵物用品博覽會",
+                date: "12/25 - 12/28",
+                location: "臺中國際展覽館",
+                type: "expo", // class control
+                url: "https://tcpet-fair.top-link.com.tw/home"
+            },
+            {
+                title: "台灣爬蟲祭 (Taiwan Reptile Festival) - 售票開跑！",
+                date: "現正熱賣中",
+                location: "詳見官方連結",
+                type: "reptile",
+                url: "https://www.facebook.com/share/r/17mQYw4py9/"
+            },
+            {
+                title: "冬季兩棲保暖特輯：如何設置加溫燈",
+                date: "New",
+                location: "ExoWorld 專欄",
+                type: "article",
+                url: "#"
+            }
+        ];
+
+        // 渲染通知列表
+        function renderNotifications() {
+            const list = document.getElementById('notification-list');
+            if(!list) return;
+            
+            list.innerHTML = ''; // 清空列表以避免重複渲染
+            
+            newsData.forEach(item => {
+                const li = document.createElement('li');
+                let iconClass = 'fa-calendar';
+                let colorClass = 'text-gray-400';
+                
+                if (item.type === 'reptile') { iconClass = 'fa-dragon'; colorClass = 'text-terra'; }
+                if (item.type === 'expo') { iconClass = 'fa-store'; colorClass = 'text-aqua'; }
+                
+                li.innerHTML = `
+                    <a href="${item.url}" target="_blank" class="flex items-start gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors group/item">
+                        <div class="mt-1 ${colorClass}">
+                            <i class="fa-solid ${iconClass}"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-200 text-sm group-hover/item:text-white transition-colors">${item.title}</div>
+                            <div class="text-xs text-gray-500 mt-0.5">
+                                <i class="fa-regular fa-clock mr-1"></i>${item.date} 
+                                <span class="mx-1">|</span> 
+                                ${item.location}
+                            </div>
+                        </div>
+                    </a>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        // 推播 Toast 控制
+        function showToast() {
+            const toast = document.getElementById('toast-container');
+            // 延遲顯示，模擬推播
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 1500);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('toast-container');
+            toast.classList.add('translate-x-full');
+        }
+
+        function toggleNewsToast() {
+            const toast = document.getElementById('toast-container');
+            if(toast.classList.contains('translate-x-full')) {
+                toast.classList.remove('translate-x-full');
+            } else {
+                toast.classList.add('translate-x-full');
+            }
+        }
+
+
+        // 內建常見物種資料庫
+        const speciesData = [
+            // --- Aquarium Species ---
+            {
+                id: 'guppy',
+                name: '孔雀魚',
+                sci_name: 'Poecilia reticulata',
+                type: 'aquarium',
+                aliases: ['百萬魚', '彩虹魚', '鳳尾魚', 'guppy'],
+                tags: ['新手', '好養', '容易繁殖', '小型魚', '群游', '上層魚', 'beginner', 'easy'],
+                persona: ['visual'], // 觀賞型
+                image_url: 'https://www.greenflow.hk/cdn/shop/products/Poeciliareticulata_3e788763-6ccb-47b1-b624-7ce90ca715b2.jpg?v=1676023781&width=600',
+                temp: '22-28',
+                env_label: '酸鹼值 (pH)',
+                env_val: '7.0 - 8.0',
+                difficulty: 1,
+                description: '水族界最經典的入門魚種，又稱「百萬魚」，因為繁殖能力極強。孔雀魚適應力極佳，喜歡弱鹼性的水質。雄魚尾鰭色彩斑斕，是欣賞的重點。適合新手嘗試繁殖樂趣。',
+                video_id: 'omFaJ266VU0',
+                source: 'AC草影水族',
+                img_pos: 'center'
+            },
+            {
+                id: 'betta',
+                name: '泰國鬥魚',
+                sci_name: 'Betta splendens',
+                type: 'aquarium',
+                aliases: ['鬥魚', '五彩搏魚', 'betta'],
+                tags: ['不需要打氣', '免打氣', '不用打氣', '鬥魚', '單養', '辦公室', '耐養', '紅色', '藍色', 'beginner', 'no oxygen'],
+                persona: ['lazy', 'office', 'cool'], // 懶人, 辦公室, 帥氣
+                image_url: 'https://a-z-animals.com/media/2023/06/shutterstock-1915386694-huge-licensed-scaled.jpg',
+                temp: '24-30',
+                env_label: '酸鹼值 (pH)',
+                env_val: '6.5 - 7.5',
+                difficulty: 2,
+                description: '擁有迷宮呼吸器官，可以直接呼吸空氣，因此不需要打氣設備也能生存，非常適合辦公室小缸飼養。雄性具有強烈領域性，絕對不能混養。建議提供水草供其休憩。',
+                video_id: 'IaURBJ2rboY',
+                source: '許伯&簡芝—倉鼠人',
+                img_pos: 'center'
+            },
+            {
+                id: 'zebra',
+                name: '斑馬魚',
+                sci_name: 'Danio rerio',
+                type: 'aquarium',
+                aliases: ['藍條魚', '花條魚', 'zebra fish'],
+                tags: ['群游', '耐養', '新手', '好養', '條紋', '活潑', 'beginner', 'active'],
+                persona: ['visual', 'beginner'],
+                image_url: 'https://geneonline.news/wp-content/uploads/2023/03/88710301_m_normal_none.jpg',
+                temp: '18-25',
+                env_label: '酸鹼值 (pH)',
+                env_val: '6.5 - 7.5',
+                difficulty: 1,
+                description: '體側有類似斑馬的條紋而得名。個性活潑好動，喜歡群游，建議一次飼養 5 隻以上。對水質適應力極強，常被用來作為「闖缸魚」以建立硝化系統。',
+                video_id: '5l3oYTDBli0',
+                source: 'Thongthong TV',
+                img_pos: 'center'
+            },
+            {
+                id: 'neon',
+                name: '日光燈魚',
+                sci_name: 'Paracheirodon innesi',
+                type: 'aquarium',
+                aliases: ['霓虹脂鯉', '紅蓮燈', '燈魚', 'neon tetra'],
+                tags: ['群游', '燈魚', '發光', '水草缸', '藍色', '紅色', 'schooling', '漂亮'],
+                persona: ['visual', 'office'],
+                image_url: 'https://coburgaquarium.com.au/cdn/shop/products/NeonTetra_1200x1000px_800x.jpg?v=1668659269',
+                temp: '20-26',
+                env_label: '酸鹼值 (pH)',
+                env_val: '6.0 - 7.0',
+                difficulty: 2,
+                description: '水草缸中最受歡迎的配角。身上有一條明亮的藍色與紅色條紋，群游時如霓虹燈般閃爍。牠們膽子較小，建議飼養 10 隻以上，並提供茂密的水草作為躲避處。',
+                video_id: 'PbJ_a_oQjKQ', 
+                source: 'AC草影水族',
+                img_pos: 'center'
+            },
+            {
+                id: 'cherry',
+                name: '極火蝦',
+                sci_name: 'Neocaridina davidi',
+                type: 'aquarium',
+                aliases: ['玫瑰蝦', '櫻花蝦', '火焰蝦', 'cherry shrimp'],
+                tags: ['除藻', '蝦', '紅色', '水草缸', '新手', '好養', 'cleaner', 'red'],
+                persona: ['visual', 'office', 'lazy'],
+                image_url: 'https://splashyfishstore.com/cdn/shop/articles/Red_Cherry_Shrimp_on_a_moss.jpg?v=1760331851',
+                temp: '22-28',
+                env_label: '硬度 (GH)',
+                env_val: '4 - 8 dGH',
+                difficulty: 1,
+                description: '又稱玫瑰蝦或櫻花蝦，是清潔水族箱的好幫手。全身通紅，非常適合在綠色水草缸中作為點綴。對水質變化較敏感，脫殼時需要安靜的環境。',
+                video_id: 'r_g7qX4uG9w',
+                source: 'AC草影水族',
+                img_pos: 'center'
+            },
+            
+            // --- Amphibian Species ---
+            {
+                id: 'pacman',
+                name: '南美角蛙',
+                sci_name: 'Ceratophrys cranwelli',
+                type: 'amphibian',
+                aliases: ['招財蛙', '角蛙', 'pacman frog'],
+                tags: ['新手', '好養', '角蛙', '大嘴', '靜止', 'beginner', 'frog', '綠色', '黃色', '土養', '乾濕分離', '大胃王'],
+                persona: ['lazy', 'cool', 'beginner'], // 懶人首選
+                image_url: 'https://image.bvshop.tw/2944/post/2944_670f3eb72d284.jpg.webp',
+                temp: '25-28',
+                env_label: '環境濕度',
+                env_val: '60% - 80%',
+                difficulty: 1,
+                description: '俗稱「招財蛙」，擁有一張大嘴，幾乎什麼都吃。飼養環境建議採「乾濕分離」，使用生化棉作為底材最為方便清潔。切勿餵食過量，以免造成消化不良。',
+                video_id: 'ALKqjilzjzg',
+                source: '彼得爬寵',
+                img_pos: 'center'
+            },
+            {
+                id: 'whites',
+                name: '老爺樹蛙',
+                sci_name: 'Litoria caerulea',
+                type: 'amphibian',
+                aliases: ['白氏樹蛙', '綠雨濱蛙', 'whites tree frog'],
+                tags: ['樹蛙', '溫和', '互動', '藍色', '綠色', '可愛', 'tree frog', 'friendly', '好養', '樹棲', '耐旱', '肥肥'],
+                persona: ['interactive', 'cool', 'visual'],
+                image_url: 'https://image.bvshop.tw/2944/post/2944_675ff7b9413cc.jpg.webp',
+                temp: '25-30',
+                env_label: '環境濕度',
+                env_val: '50% - 70%',
+                difficulty: 2,
+                description: '來自澳洲的樹棲蛙類，皮膚呈蠟質，較耐乾燥。外表肥厚可愛，成體性格非常溫和，容易與人互動。需要較高的飼養箱並放置樹枝供其攀爬休息。',
+                video_id: 'zFUzKEStT4Y',
+                source: '彼得爬寵',
+                img_pos: 'top' 
+            },
+            {
+                id: 'redeyed',
+                name: '紅眼樹蛙',
+                sci_name: 'Agalychnis callidryas',
+                type: 'amphibian',
+                aliases: ['紅眼蛙', 'red eyed tree frog'],
+                tags: ['進階', '夜行性', '雨林', '漂亮', '紅色', '綠色', 'advanced', 'night', '高濕度', '觀賞', '樹棲'],
+                persona: ['visual', 'cool'],
+                image_url: 'https://upload.wikimedia.org/wikipedia/commons/e/e3/Red-eyed_Tree_Frog_%28Agalychnis_callidryas%29_1.png',
+                temp: '24-28',
+                env_label: '環境濕度',
+                env_val: '70% - 90%',
+                difficulty: 3,
+                description: '雨林中的寶石，標誌性的紅眼睛與鮮綠身體非常迷人。牠們是完全夜行性的，白天會縮成一團睡覺，晚上才活動。對環境濕度要求極高，需要頻繁噴霧。',
+                video_id: 'xf8PBCM-Ae0',
+                source: '蝌蚪老師與三桃',
+                img_pos: 'center 20%'
+            },
+            {
+                id: 'axolotl',
+                name: '六角恐龍',
+                sci_name: 'Ambystoma mexicanum',
+                type: 'amphibian',
+                aliases: ['墨西哥鈍口螈', '美西螈', 'axolotl'],
+                tags: ['冷水', '再生', '可愛', '粉紅色', '水棲', 'cold water', 'cute', '特別', '蠑螈', '怕熱'],
+                persona: ['visual', 'interactive', 'cool'],
+                image_url: 'https://www.childrensaquarium.com/wp-content/uploads/2024/10/axolotls.jpg',
+                temp: '16-20',
+                env_label: '水質要求',
+                env_val: '需冷水/高氧',
+                difficulty: 3,
+                description: '其實是墨西哥鈍口螈的幼體形式（幼態延續）。牠們非常怕熱，台灣夏季飼養通常需要冷水機或風扇降溫。擁有強大的再生能力，斷肢也能重新長出。',
+                video_id: 'YP6YyqN2Eok',
+                source: 'AC草影水族',
+                img_pos: 'center'
+            },
+            {
+                id: 'newt',
+                name: '東方蠑螈',
+                sci_name: 'Cynops orientalis',
+                type: 'amphibian',
+                aliases: ['巴西火龍', '中國火龍', 'fire bellied newt'],
+                tags: ['兩棲', '橘色', '有毒', '水陸', 'newt', '好養', '蠑螈', '耐寒'],
+                persona: ['cool', 'office'],
+                image_url: 'https://upload.wikimedia.org/wikipedia/commons/4/41/Chinese_Fire_Bellied_Newts_2.JPG',
+                temp: '15-25',
+                env_label: '水陸比例',
+                env_val: '水 70% 陸 30%',
+                difficulty: 2,
+                description: '俗稱巴西火龍，腹部有鮮豔的橘紅色斑點（警戒色）。屬於水棲性較強的蠑螈，飼養環境需要水深較深，並提供一塊浮島或陸地供其休息。',
+                video_id: ['YnuiVYhSqw0', 'zCR9sQCDHoU'],
+                source: 'YN頻道 / tropical fish - kaka',
+                img_pos: 'center'
+            },
+            
+            // --- Reptile Species ---
+            {
+                id: 'res',
+                name: '巴西龜',
+                sci_name: 'Trachemys scripta elegans',
+                type: 'amphibian', 
+                aliases: ['紅耳龜', '巴西烏龜', 'red eared slider'],
+                tags: ['水龜', '澤龜', '新手', '好養', '雜食', '長壽', 'turtle', 'hardy'],
+                persona: ['beginner', 'interactive'],
+                image_url: 'https://cdn.hk01.com/di/media/images/dw/20240202/830035437182521344086491.jpeg/hIoMOeBKPVIXl8HcfnmJvSuKHcFHi3I7sjbSVrI20lY?v=w1920r16_9', // 更新圖片連結
+                temp: '25-28',
+                env_label: '環境類型',
+                env_val: '水陸兩棲 (需曬台)',
+                difficulty: 1,
+                description: '市面上最常見的寵物龜。適應力極強，對水質要求不高，但需要充足的陽光或UVB燈來合成維生素D3。成體體型較大，需要準備足夠大的飼養空間。',
+                video_id: 'x9-s4ElMxyI',
+                source: '香港爬道',
+                img_pos: 'center'
+            },
+            {
+                id: 'leopard',
+                name: '豹紋守宮',
+                sci_name: 'Eublepharis macularius',
+                type: 'amphibian',
+                aliases: ['豹紋', '守宮', 'leopard gecko'],
+                tags: ['必選', '最好養', '最穩定', '新手', '溫和', '昆蟲', 'gecko', 'easy', 'popular'],
+                persona: ['interactive', 'beginner', 'lazy', 'cool'], 
+                image_url: 'https://pet-health-content-media.chewy.com/wp-content/uploads/2025/09/08192417/leopard-gecko-1024x683.jpg', 
+                temp: '28-32',
+                env_label: '環境濕度',
+                env_val: '40% - 60% (需濕度躲避)',
+                difficulty: 1,
+                description: '爬蟲入門的必選物種。牠們不像一般壁虎會爬牆，且擁有眼瞼可以閉眼。性格非常溫和穩定，動作緩慢，花色基因選擇極多，是最好養的爬蟲之一。',
+                video_id: '5F5Bm3JPR9U',
+                source: '香港爬道',
+                img_pos: 'center'
+            },
+            {
+                id: 'cornsnake',
+                name: '玉米蛇',
+                sci_name: 'Pantherophis guttatus',
+                type: 'amphibian',
+                aliases: ['玉米錦蛇', 'corn snake'],
+                tags: ['蛇', '溫馴', '食慾佳', '好養', '顏色多', 'snake', 'gentle'],
+                persona: ['lazy', 'cool', 'visual'],
+                image_url: 'https://www.floridamuseum.ufl.edu/wp-content/uploads/sites/116/2020/10/photo_17.jpg',
+                temp: '24-29',
+                env_label: '環境濕度',
+                env_val: '40% - 60%',
+                difficulty: 1,
+                description: '最受歡迎的寵物蛇之一。個性非常溫馴，極少攻擊人，且食慾通常很好，不容易拒食。體型適中，花色千變萬化，是非常適合新手的第一條蛇。',
+                video_id: '5xO097YkCa8',
+                source: '蝌蚪老師與三桃',
+                img_pos: 'center'
+            },
+            {
+                id: 'ballpython',
+                name: '球蟒',
+                sci_name: 'Python regius',
+                type: 'amphibian',
+                aliases: ['皇蟒', 'ball python'],
+                tags: ['蛇', '蟒', '互動性低', '溫柔', '膽小', '可愛', 'snake', 'gentle'],
+                persona: ['lazy', 'cool', 'quiet'],
+                image_url: 'https://images.chinatimes.com/newsphoto/2023-08-16/656/20230816003658.jpg',
+                temp: '26-32',
+                env_label: '環境濕度',
+                env_val: '50% - 60%',
+                difficulty: 2,
+                description: '雖然是蟒蛇，但生性膽小，受到驚嚇時會把頭埋在身體裡縮成一顆球，因此得名。互動性雖然不高，但非常溫柔，幾乎不會咬人。需要注意溫度維持。',
+                video_id: 'dbgZEOLq4Bs',
+                source: '鱷鄰居&沙西米 Croco Sashimi',
+                img_pos: 'center'
+            },
+            {
+                id: 'hermann',
+                name: '赫曼陸龜',
+                sci_name: 'Testudo hermanni',
+                type: 'amphibian',
+                aliases: ['赫曼', '陸龜', 'hermanns tortoise'],
+                tags: ['陸龜', '小型', '吃素', '好照顧', '耐寒', 'tortoise', 'easy', 'vegetarian'],
+                persona: ['interactive', 'beginner'],
+                image_url: 'https://static.wixstatic.com/media/bcb443_48be77ae9f564b929419ce72f79e7275~mv2.jpg',
+                temp: '20-26',
+                env_label: '食物',
+                env_val: '全素食 (高纖蔬菜)',
+                difficulty: 2,
+                description: '適合家庭飼養的小型陸龜。牠們是素食主義者，主要吃深綠色蔬菜和牧草。個性活潑，互動性不錯，且相較於其他陸龜更適應台灣的氣候。',
+                video_id: ['GXHUexfUQao', 'CoJ1m5PjPus'], 
+                source: 'YN頻道',
+                img_pos: 'center'
+            }
+        ];
+
+        // --- 造景美學數據庫 ---
+        const landscapingData = [
+            {
+                id: 'iwagumi',
+                title: '石組造景 (Iwagumi)',
+                tags: ['水族', '極簡', '高難度'],
+                image: 'https://images.unsplash.com/photo-1533601017-dc61895e03c0?q=80&w=2070&auto=format&fit=crop',
+                desc: '源自日本的造景風格，強調「奇數」岩石的擺放哲學（主石、副石、添石）。以石頭為骨架，搭配單一品種的地毯式水草（如迷你矮珍珠），創造出遼闊的草原感。看似簡單，但對藻類控制與石頭佈局要求極高。',
+                elements: ['青龍石/萬天石', '迷你矮珍珠/挖耳草', '強光', 'CO2設備']
+            },
+            {
+                id: 'jungle',
+                title: '叢林風格 (Jungle Style)',
+                tags: ['水族', '狂野', '適合新手'],
+                image: 'https://images.unsplash.com/photo-1528697203043-7335dc11da48?q=80&w=2070&auto=format&fit=crop',
+                desc: '模擬亞馬遜河流域的混亂與生機。不講究修剪的整齊，而是讓水草自由生長，創造出魚類躲藏的天然屏障。通常使用大型皇冠草、鐵皇冠與沈木，非常有原始感，且不需要太頻繁的維護。',
+                elements: ['沈木', '鐵皇冠', '水蘭', '皇冠草']
+            },
+            {
+                id: 'paludarium',
+                title: '水陸生態缸 (Paludarium)',
+                tags: ['兩棲', '水陸', '熱門'],
+                image: 'https://i.pinimg.com/736x/87/40/2c/87402c5211995874c7c2514332152771.jpg',
+                desc: '同時包含「水下」與「陸上」區域的終極生態缸。利用高低落差做出流水與陸地，非常適合飼養蠑螈、青蛙或半水棲龜類。可以同時種植水草與陸生苔蘚、積水鳳梨。',
+                elements: ['發泡膠/石頭造陸', '沉水馬達(瀑布)', '苔蘚', '空氣鳳梨']
+            },
+            {
+                id: 'biotope',
+                title: '原生地模擬 (Biotope)',
+                tags: ['硬核', '自然', '教育'],
+                image: 'https://img.freepik.com/premium-photo/aquarium-with-neon-tetras-plants-dark-background_124507-60195.jpg',
+                desc: '完全捨棄美學修飾，旨在100%還原特定物種在野外的真實環境。例如模擬「黑水河」環境，會有大量的枯葉、枯枝與茶色的水質。這對生物來說是最舒適、最能展現自然行為的環境。',
+                elements: ['欖仁葉/枯葉', '細沙', '樹枝', '黑水(腐植酸)']
+            },
+            {
+                id: 'desert',
+                title: '沙漠/岩漠造景 (Desert)',
+                tags: ['爬蟲', '乾燥', '耐熱'],
+                image: 'https://www.snakesatsunset.com/images/products/detail/leopardgeckohabitat.jpg',
+                desc: '專為守宮、鬃獅蜥等乾燥物種設計。重點在於利用岩石堆疊出「熱點」與「躲避處」。底材通常使用爬蟲沙或赤玉土。雖然植物較少，但岩石的紋理與層次是美感的來源。',
+                elements: ['頁岩/造景石', '爬蟲沙/赤玉土', '枯木', '多肉植物(選用)']
+            },
+            {
+                id: 'rainforest',
+                title: '雨林缸 (Rainforest)',
+                tags: ['爬蟲', '高濕', '華麗'],
+                image: 'https://m.media-amazon.com/images/I/81+m1tJ2HQL.jpg',
+                desc: '垂直空間的藝術。利用背板種植大量的附生植物（積水鳳梨、蘭花、蕨類）。通常配有自動噴淋系統以維持高濕度。是變色龍、樹蛙與守宮的豪宅。',
+                elements: ['軟木樹皮背景', '積水鳳梨', '藤蔓', '噴淋系統']
+            }
+        ];
+
+        // --- 獸醫資料庫 (Mock Data) ---
+        const vetData = [
+            // --- 北部 ---
+            { name: '侏羅紀野生動物專科', region: 'north', type: 'reptile', address: '台北市士林區', phone: '02-2832-1298', tags: ['爬蟲', '烏龜', '兩棲'] },
+            { name: '不莱梅特殊寵物專科', region: 'north', type: 'reptile', address: '台北市大同區', phone: '02-2599-3919', tags: ['爬蟲', '鳥類', '鼠兔'] },
+            { name: '亞馬森特寵專科', region: 'north', type: 'reptile', address: '台北市內湖區', phone: '02-8791-6453', tags: ['爬蟲', '兩棲', '外科'] },
+            { name: '大肚魚水族醫院', region: 'north', type: 'aquatic', address: '新北市板橋區', phone: '02-2259-2688', tags: ['觀賞魚', '魚病'] },
+            
+            // --- 中部 (台中特寵懶人包) ---
+            { name: '朱羅紀野生動物專科', region: 'central', type: 'reptile', address: '台中市西區英才路625號', phone: '04-2375-7808', tags: ['爬蟲', '特寵', '權威'] },
+            { name: '中興大學教學獸醫院', region: 'central', type: 'all', address: '台中市西區向上路一段21號', phone: '04-2287-0180', tags: ['野生動物科', '教學醫院', '後送轉診'] },
+            { name: '小島動物醫院', region: 'central', type: 'reptile', address: '台中市西區三民西路83號', phone: '04-2376-7158', tags: ['特寵', '爬蟲', '溫馨'] },
+            { name: '毛克利動物醫院', region: 'central', type: 'reptile', address: '台中市文心路四段690號', phone: '04-2238-6609', tags: ['特寵', '爬蟲', '夜間急診'] },
+            { name: '達爾文動物醫院', region: 'central', type: 'reptile', address: '台中市西區博館路157號', phone: '04-2320-2759', tags: ['爬蟲', '特殊寵物', '骨科'] },
+            { name: '伴心特殊寵物專科', region: 'central', type: 'reptile', address: '台中市南屯區文心路一段430號', phone: '04-2323-1788', tags: ['特寵', '鳥類', '爬蟲'] },
+            { name: '感恩動物醫院', region: 'central', type: 'reptile', address: '台中市北區忠明路131號', phone: '04-2320-2590', tags: ['爬蟲', '特寵'] },
+            { name: '羽森林動物醫院', region: 'central', type: 'reptile', address: '台中市北屯區', phone: '04-2241-1199', tags: ['爬蟲', '鳥類'] },
+            
+            // --- 南部 ---
+            { name: '蓋亞野生動物專科', region: 'south', type: 'reptile', address: '高雄市三民區', phone: '07-392-9359', tags: ['爬蟲', '兩棲'] },
+            { name: '亞幸動物醫院', region: 'south', type: 'reptile', address: '高雄市苓雅區', phone: '07-726-5577', tags: ['爬蟲', '中獸醫'] }
+        ];
+
+        // 搜尋邏輯
+        let currentSearchFilter = 'all';
+        
+        function setSearchFilter(filter) {
+            currentSearchFilter = filter;
+            const filterLabel = {
+                'all': '全部',
+                'aquarium': '水族',
+                'amphibian': '兩棲'
+            };
+            
+            // 更新 UI 提示
+            const tag = document.getElementById('filter-tag');
+            tag.innerText = `搜尋範圍: ${filterLabel[filter]}`;
+            tag.classList.remove('opacity-0');
+            
+            // 重新觸發搜尋
+            const input = document.getElementById('search-input');
+            if(input.value.trim() !== '') {
+                performSearch(input.value);
+            }
+        }
+
+        // 個性化推薦邏輯
+        function performRecommendation(persona) {
+            // 關閉 Modal
+            document.getElementById('recommendation_modal').close();
+            
+            // 滾動到主介面
+            document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'});
+            
+            // 切換到一個臨時的「推薦結果」視圖 (這裡我們重用 species-view 但清空類別)
+            const catView = document.getElementById('category-view');
+            const speciesView = document.getElementById('species-view');
+            const landscapingView = document.getElementById('landscaping-view');
+            const currentLabel = document.getElementById('current-category-label');
+
+            catView.classList.add('hidden', 'opacity-0');
+            landscapingView.classList.add('hidden', 'opacity-0'); // 確保造景頁關閉
+            speciesView.classList.remove('hidden');
+            setTimeout(() => {
+                speciesView.classList.remove('opacity-0', 'translate-y-10');
+            }, 50);
+
+            // 過濾符合 persona 的物種
+            const filteredData = speciesData.filter(s => s.persona && s.persona.includes(persona));
+            
+            // 更新 UI
+            const personaLabels = {
+                'lazy': '懶人 / 忙碌一族',
+                'interactive': '喜歡互動陪伴',
+                'office': '辦公室療癒小物',
+                'cool': '帥氣 / 特別物種'
+            };
+            
+            currentLabel.innerText = `✨ 為您推薦：${personaLabels[persona]} (${filteredData.length} 種)`;
+            
+            // 渲染列表
+            renderButtons(filteredData);
+            
+            if(filteredData.length > 0) {
+                renderSpecies(filteredData[0].id);
+            }
+        }
+
+        function performSearch(query) {
+            const resultsContainer = document.getElementById('search-results');
+            const normalizedQuery = query.toLowerCase().trim();
+            
+            if (normalizedQuery === '') {
+                resultsContainer.classList.add('hidden');
+                return;
+            }
+
+            // 過濾邏輯 (Updated to include tags)
+            const results = speciesData.filter(species => {
+                // 1. 檢查分類過濾器
+                if (currentSearchFilter !== 'all' && species.type !== currentSearchFilter) {
+                    return false;
+                }
+
+                // 2. 關鍵字比對 (名稱、學名、別名、標籤)
+                const nameMatch = species.name.includes(normalizedQuery);
+                const sciNameMatch = species.sci_name.toLowerCase().includes(normalizedQuery);
+                const aliasMatch = species.aliases.some(alias => alias.toLowerCase().includes(normalizedQuery));
+                const tagMatch = species.tags.some(tag => tag.toLowerCase().includes(normalizedQuery));
+
+                return nameMatch || sciNameMatch || aliasMatch || tagMatch;
+            });
+
+            // 渲染結果
+            resultsContainer.innerHTML = '';
+            if (results.length > 0) {
+                results.forEach(species => {
+                    const div = document.createElement('div');
+                    div.className = 'p-3 hover:bg-white/10 cursor-pointer border-b border-gray-800 last:border-none flex items-center gap-3 transition-colors';
+                    div.onclick = () => {
+                        jumpToSpecies(species.type, species.id);
+                        resultsContainer.classList.add('hidden'); // 選擇後隱藏
+                        document.getElementById('search-input').value = ''; // 清空輸入
+                    };
+
+                    const typeColor = species.type === 'aquarium' ? 'text-aqua' : 'text-terra';
+                    const typeLabel = species.type === 'aquarium' ? '水族' : '兩棲';
+
+                    div.innerHTML = `
+                        <div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                            <img src="${species.image_url}" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-200">${species.name}</div>
+                            <div class="text-xs text-gray-500">
+                                <span class="${typeColor} mr-2">● ${typeLabel}</span>
+                                ${species.aliases.join(', ')}
+                            </div>
+                        </div>
+                    `;
+                    resultsContainer.appendChild(div);
+                });
+                resultsContainer.classList.remove('hidden');
+            } else {
+                resultsContainer.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">找不到相關物種</div>';
+                resultsContainer.classList.remove('hidden');
+            }
+        }
+
+        // 跳轉到特定物種的邏輯
+        function jumpToSpecies(category, id) {
+            // 1. 滾動到主介面
+            document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'});
+            
+            // 2. 模擬點擊分類 (這會初始化該分類的按鈕列表)
+            selectCategory(category);
+
+            // 3. 延遲一點點，等待分類 View 渲染完畢後，選中該物種
+            setTimeout(() => {
+                renderSpecies(id);
+                
+                // 找到對應的按鈕並設為 active (需要重新抓取 DOM，因為按鈕是剛生成的)
+                const buttons = document.querySelectorAll('#species-buttons-container button');
+                buttons.forEach(btn => {
+                    if (btn.dataset.id === id) {
+                        updateActiveButton(btn, category === 'amphibian');
+                    }
+                });
+            }, 400); // 稍微比 selectCategory 的動畫時間長一點
+        }
+
+        // 綁定輸入事件
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            performSearch(e.target.value);
+        });
+
+        // 點擊外部關閉搜尋結果
+        document.addEventListener('click', (e) => {
+            const searchContainer = document.querySelector('.relative.max-w-2xl');
+            if (!searchContainer.contains(e.target)) {
+                document.getElementById('search-results').classList.add('hidden');
+            }
+        });
+
+
+        // 頁面載入時執行
+        window.addEventListener('DOMContentLoaded', () => {
+            renderNotifications();
+            showToast(); // 顯示推播
+            filterVets(); // 初始化獸醫列表
+        });
+
+        // 重置為分類選擇畫面
+        function resetToCategories() {
+            const catView = document.getElementById('category-view');
+            const speciesView = document.getElementById('species-view');
+            const landscapingView = document.getElementById('landscaping-view');
+            
+            // 隱藏物種視圖
+            speciesView.classList.add('hidden', 'opacity-0', 'translate-y-10');
+            landscapingView.classList.add('hidden', 'opacity-0', 'translate-y-10');
+            
+            // 顯示分類視圖
+            catView.classList.remove('hidden');
+            // 小延遲讓 display:block 生效後再跑動畫
+            setTimeout(() => {
+                catView.classList.remove('opacity-0', 'translate-y-10');
+            }, 50);
+        }
+
+        // 選擇分類並進入物種列表
+        function selectCategory(categoryType) {
+            const catView = document.getElementById('category-view');
+            const speciesView = document.getElementById('species-view');
+            const landscapingView = document.getElementById('landscaping-view');
+            const currentLabel = document.getElementById('current-category-label');
+
+            // 1. 淡出分類視圖
+            catView.classList.add('opacity-0', 'translate-y-10');
+            landscapingView.classList.add('hidden', 'opacity-0'); // 確保造景頁關閉
+            
+            setTimeout(() => {
+                catView.classList.add('hidden');
+                
+                // 2. 準備物種資料
+                // 過濾資料
+                const filteredData = speciesData.filter(s => s.type === categoryType);
+                
+                // 更新按鈕列表
+                renderButtons(filteredData);
+                
+                // 預設選中該分類的第一個物種
+                if(filteredData.length > 0) {
+                    renderSpecies(filteredData[0].id);
+                }
+
+                // 更新標籤文字
+                currentLabel.innerText = categoryType === 'aquarium' ? '目前瀏覽：水族世界' : '目前瀏覽：兩棲爬蟲';
+
+                // 3. 顯示物種視圖
+                speciesView.classList.remove('hidden');
+                setTimeout(() => {
+                    speciesView.classList.remove('opacity-0', 'translate-y-10');
+                }, 50);
+
+            }, 300); // 等待淡出動畫完成
+        }
+
+        // --- 造景頁面邏輯 ---
+        function showLandscapingView() {
+            // 隱藏其他
+            document.getElementById('category-view').classList.add('hidden', 'opacity-0');
+            document.getElementById('species-view').classList.add('hidden', 'opacity-0');
+            
+            const view = document.getElementById('landscaping-view');
+            view.classList.remove('hidden');
+            setTimeout(() => {
+                view.classList.remove('opacity-0', 'translate-y-10');
+            }, 50);
+
+            // 渲染 Grid
+            const grid = document.getElementById('landscaping-grid');
+            
+            // 修改判斷邏輯：檢查是否有子元素 (避免被 HTML 註解影響)
+            if(grid.children.length === 0) { 
+                grid.innerHTML = ''; // 先清空既有的註解或空白
+                
+                landscapingData.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'group relative h-72 rounded-2xl overflow-hidden cursor-pointer border border-gray-800 hover:border-aqua transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl';
+                    card.onclick = () => openStyleModal(item);
+                    
+                    card.innerHTML = `
+                        <img src="${item.image}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:filter group-hover:brightness-75" alt="${item.title}">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90"></div>
+                        <div class="absolute bottom-0 left-0 p-6 w-full translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                            <div class="flex gap-2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                                ${item.tags.map(t => `<span class="badge badge-xs bg-aqua/20 border-none text-aqua font-bold px-2 py-2">${t}</span>`).join('')}
+                            </div>
+                            <h3 class="text-2xl font-serif font-bold text-white group-hover:text-aqua transition-colors">${item.title}</h3>
+                            <div class="h-1 w-0 group-hover:w-full bg-aqua mt-3 transition-all duration-500"></div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        function openStyleModal(item) {
+            document.getElementById('style-modal-img').src = item.image;
+            document.getElementById('style-modal-title').innerText = item.title;
+            document.getElementById('style-modal-desc').innerText = item.desc;
+            
+            const tagsContainer = document.getElementById('style-modal-tags');
+            tagsContainer.innerHTML = item.tags.map(t => `<span class="badge badge-outline text-gray-400">${t}</span>`).join('');
+            
+            const elementsContainer = document.getElementById('style-modal-elements');
+            elementsContainer.innerHTML = item.elements.map(e => `<li class="flex items-center"><i class="fa-solid fa-check text-aqua mr-2 text-xs"></i>${e}</li>`).join('');
+            
+            document.getElementById('style_modal').showModal();
+        }
+
+        // --- 獸醫地圖邏輯 ---
+        function filterVets() {
+            const region = document.getElementById('vet-region').value;
+            const type = document.getElementById('vet-type').value;
+            
+            const list = document.getElementById('vet-list');
+            list.innerHTML = '';
+            
+            const filtered = vetData.filter(v => {
+                const regionMatch = region === 'all' || v.region === region;
+                const typeMatch = type === 'all' || v.type === type || (type === 'reptile' && v.type === 'reptile') || (type === 'aquatic' && v.type === 'aquatic'); 
+                // 簡化邏輯：資料庫中 reptile 包含兩棲, aquatic 包含魚類
+                return regionMatch && typeMatch;
+            });
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="col-span-full text-center py-8 text-gray-500">此篩選條件下無資料</div>`;
+                return;
+            }
+
+            filtered.forEach(vet => {
+                const div = document.createElement('div');
+                div.className = 'bg-white/5 p-4 rounded-xl border border-gray-700 hover:border-gray-500 transition-colors flex justify-between items-center group';
+                
+                let icon = vet.type === 'aquatic' ? 'fa-fish text-blue-400' : 'fa-dragon text-terra';
+                let phoneHtml = vet.phone ? `<div class="text-xs text-gray-400 mt-0.5"><i class="fa-solid fa-phone mr-1.5 text-gray-600"></i>${vet.phone}</div>` : '';
+
+                div.innerHTML = `
+                    <div>
+                        <div class="font-bold text-gray-200 flex items-center gap-2 text-sm md:text-base">
+                            <i class="fa-solid ${icon}"></i> ${vet.name}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot mr-1.5 text-gray-600"></i>${vet.address}</div>
+                        ${phoneHtml}
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            ${vet.tags.map(t => `<span class="text-[10px] px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-gray-400">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-circle btn-ghost text-gray-500 hover:text-white hover:bg-white/10" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${vet.name}', '_blank')">
+                        <i class="fa-solid fa-diamond-turn-right text-lg"></i>
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // 渲染按鈕列表 (接收過濾後的資料)
+        function renderButtons(filteredData) {
+            const container = document.getElementById('species-buttons-container');
+            container.innerHTML = '';
+
+            filteredData.forEach((item, index) => {
+                const btn = document.createElement('button');
+                const isAmphibian = item.type === 'amphibian';
+                
+                const hoverClass = isAmphibian ? 'hover:text-terra' : 'hover:text-aqua';
+                
+                btn.className = `species-btn snap-start shrink-0 px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all font-medium text-gray-400 ${hoverClass}`;
+                // 加入 ID 作為識別，點擊時用 find 查找完整資料
+                btn.dataset.id = item.id;
+                
+                btn.innerHTML = `<span class="mr-2 text-xs opacity-50">${isAmphibian ? '●' : '●'}</span>${item.name}`;
+                btn.onclick = function() { 
+                    renderSpecies(item.id); 
+                    updateActiveButton(this, isAmphibian);
+                };
+                
+                container.appendChild(btn);
+            });
+
+            // 初始化按鈕狀態 (第一個設為 active)
+            const firstBtn = container.querySelector('button');
+            if(firstBtn) {
+                const firstItem = filteredData[0];
+                updateActiveButton(firstBtn, firstItem.type === 'amphibian');
+            }
+        }
+
+        function updateActiveButton(activeBtn, isAmphibian) {
+            // 重置所有按鈕
+            document.querySelectorAll('.species-btn').forEach(btn => {
+                btn.className = `species-btn snap-start shrink-0 px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all font-medium text-gray-400 ${isAmphibian ? 'hover:text-terra' : 'hover:text-aqua'}`;
+            });
+            
+            // 設定當前按鈕
+            const activeClass = isAmphibian ? 'text-terra bg-terra/10 ring-1 ring-terra/50' : 'text-aqua bg-aqua/10 ring-1 ring-aqua/50';
+            activeBtn.className = `species-btn snap-start shrink-0 px-5 py-3 rounded-xl transition-all font-bold shadow-lg ${activeClass}`;
+            
+            activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        // 渲染物種詳細資料 (接收 ID)
+        function renderSpecies(id) {
+            const data = speciesData.find(s => s.id === id);
+            if(!data) return;
+
+            const content = document.getElementById('species-content');
+            
+            // 簡單的淡入淡出效果
+            content.style.opacity = '0.5';
+            
+            setTimeout(() => {
+                const isAmphibian = data.type === 'amphibian';
+                const themeColor = isAmphibian ? 'text-terra' : 'text-aqua';
+                
+                // 更新圖片
+                const imgElement = document.getElementById('species-image');
+                imgElement.src = data.image_url;
+                imgElement.style.objectPosition = data.img_pos || 'center';
+                
+                // 更新文字
+                document.getElementById('species-name').innerText = data.name;
+                document.getElementById('species-name').className = `text-4xl md:text-5xl font-serif font-bold tracking-wide mb-1 ${themeColor}`;
+                document.getElementById('species-sci-name').innerText = data.sci_name;
+                document.getElementById('species-desc').innerText = data.description;
+                document.getElementById('species-desc').className = `text-gray-400 mb-2 leading-relaxed text-lg border-l-4 pl-6 ${isAmphibian ? 'border-terra' : 'border-aqua'}`;
+
+                // 更新 Badge 與 Source
+                const typeBadge = document.getElementById('species-type-badge');
+                typeBadge.innerText = isAmphibian ? '兩棲類 (Amphibian)' : '水族類 (Aquarium)';
+                typeBadge.className = `badge badge-outline mb-2 ${isAmphibian ? 'border-terra text-terra' : 'border-aqua text-aqua'}`;
+                
+                document.getElementById('data-source').innerText = data.source;
+                document.getElementById('data-source-mobile').innerText = data.source;
+                document.getElementById('video-source-label').innerText = data.source;
+
+                // 更新 Stats
+                document.getElementById('stat-temp').innerText = data.temp + '°C';
+                document.getElementById('stat-env-label').innerText = data.env_label;
+                document.getElementById('stat-env-val').innerText = data.env_val;
+                document.getElementById('stat-env-val').className = `text-xl font-bold pl-1 ${themeColor}`;
+
+                // 更新難度星星
+                const starsContainer = document.getElementById('difficulty-stars');
+                starsContainer.innerHTML = '';
+                for(let i=0; i<5; i++) {
+                    if(i < data.difficulty) {
+                        starsContainer.innerHTML += '<i class="fa-solid fa-star"></i>';
+                    } else {
+                        starsContainer.innerHTML += '<i class="fa-regular fa-star text-gray-600"></i>';
+                    }
+                }
+
+                // 更新影片邏輯 (支援多影片)
+                const videoFrame = document.getElementById('species-video');
+                const switcherContainer = document.getElementById('video-switcher');
+                const fallbackLink = document.getElementById('video-fallback-link');
+                
+                // 清空舊按鈕
+                switcherContainer.innerHTML = '';
+                switcherContainer.classList.add('hidden');
+
+                if (Array.isArray(data.video_id)) {
+                    // 多影片模式
+                    // 1. 預設播放第一部
+                    updateVideoPlayer(data.video_id[0]);
+                    
+                    // 2. 顯示切換器
+                    switcherContainer.classList.remove('hidden');
+                    
+                    // 3. 生成按鈕
+                    data.video_id.forEach((vid, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = `btn btn-xs ${index === 0 ? 'btn-primary' : 'btn-outline border-gray-600 text-gray-400 hover:text-white'} rounded-full px-4 transition-all`;
+                        btn.innerText = `第 ${index + 1} 集`;
+                        
+                        // 定義點擊事件
+                        btn.onclick = () => {
+                            updateVideoPlayer(vid);
+                            // 更新按鈕樣式
+                            Array.from(switcherContainer.children).forEach(b => {
+                                b.className = 'btn btn-xs btn-outline border-gray-600 text-gray-400 hover:text-white rounded-full px-4 transition-all';
+                            });
+                            btn.className = 'btn btn-xs btn-primary rounded-full px-4 transition-all';
+                        };
+                        
+                        switcherContainer.appendChild(btn);
+                    });
+
+                } else {
+                    // 單影片模式
+                    updateVideoPlayer(data.video_id);
+                }
+
+                function updateVideoPlayer(vid) {
+                    videoFrame.src = `https://www.youtube-nocookie.com/embed/${vid}?rel=0&playsinline=1`;
+                    fallbackLink.href = `https://www.youtube.com/watch?v=${vid}`;
+                }
+
+                // 恢復透明度
+                content.style.opacity = '1';
+            }, 200);
+        }
+    </script>
+
+</body>
+</html>
