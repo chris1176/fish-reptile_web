@@ -9,6 +9,9 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- 引入 PapaParse (用於解析 Google Sheet CSV) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
     <!-- 引入 Google Fonts (Noto Sans TC) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -631,7 +634,8 @@
                         <div class="xl:w-5/12 w-full">
                             <div class="card bg-cardbg shadow-2xl border border-gray-800 overflow-hidden relative group h-full">
                                 <figure class="relative h-64 md:h-72 overflow-hidden flex-shrink-0">
-                                    <img src="" alt="Species Image" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" id="species-image">
+                                    <!-- 修改：加入 referrerpolicy="no-referrer" 以支援 Google Drive 圖片 -->
+                                    <img src="" alt="Species Image" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" id="species-image" referrerpolicy="no-referrer">
                                     <div class="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
                                         <span class="text-xs text-gray-300">飼養難度</span>
                                         <div class="text-yellow-400 text-sm" id="difficulty-stars"></div>
@@ -705,6 +709,12 @@
         <aside>
             <div class="text-3xl font-serif text-white mb-2">EXO<span class="text-aqua">WORLD</span></div>
             <p>Exploring the Micro-Ecosystems.<br>Designed for Aquarium & Terrarium Hobbyists.</p>
+            
+            <!-- 新增：資料來源狀態指示燈 -->
+            <div id="connection-status" class="badge badge-outline gap-2 mt-4 text-gray-500 border-gray-700">
+                <div class="w-2 h-2 rounded-full bg-gray-500"></div>
+                Initializing Data...
+            </div>
         </aside> 
         <nav>
             <header class="footer-title text-gray-500">物種分類</header> 
@@ -806,8 +816,8 @@
         }
 
 
-        // 內建常見物種資料庫
-        const speciesData = [
+        // 內建常見物種資料庫 (作為預設/備用資料)
+        let speciesData = [
             // --- Aquarium Species ---
             {
                 id: 'guppy',
@@ -816,14 +826,14 @@
                 type: 'aquarium',
                 aliases: ['百萬魚', '彩虹魚', '鳳尾魚', 'guppy'],
                 tags: ['新手', '好養', '容易繁殖', '小型魚', '群游', '上層魚', 'beginner', 'easy'],
-                persona: ['visual'], // 觀賞型
+                persona: ['visual'], 
                 image_url: 'https://www.greenflow.hk/cdn/shop/products/Poeciliareticulata_3e788763-6ccb-47b1-b624-7ce90ca715b2.jpg?v=1676023781&width=600',
                 temp: '22-28',
                 env_label: '酸鹼值 (pH)',
                 env_val: '7.0 - 8.0',
                 difficulty: 1,
                 description: '水族界最經典的入門魚種，又稱「百萬魚」，因為繁殖能力極強。孔雀魚適應力極佳，喜歡弱鹼性的水質。雄魚尾鰭色彩斑斕，是欣賞的重點。適合新手嘗試繁殖樂趣。',
-                video_id: 'omFaJ266VU0',
+                video_id: ['omFaJ266VU0'],
                 source: 'AC草影水族',
                 img_pos: 'center'
             },
@@ -834,14 +844,14 @@
                 type: 'aquarium',
                 aliases: ['鬥魚', '五彩搏魚', 'betta'],
                 tags: ['不需要打氣', '免打氣', '不用打氣', '鬥魚', '單養', '辦公室', '耐養', '紅色', '藍色', 'beginner', 'no oxygen'],
-                persona: ['lazy', 'office', 'cool'], // 懶人, 辦公室, 帥氣
+                persona: ['lazy', 'office', 'cool'], 
                 image_url: 'https://a-z-animals.com/media/2023/06/shutterstock-1915386694-huge-licensed-scaled.jpg',
                 temp: '24-30',
                 env_label: '酸鹼值 (pH)',
                 env_val: '6.5 - 7.5',
                 difficulty: 2,
                 description: '擁有迷宮呼吸器官，可以直接呼吸空氣，因此不需要打氣設備也能生存，非常適合辦公室小缸飼養。雄性具有強烈領域性，絕對不能混養。建議提供水草供其休憩。',
-                video_id: 'IaURBJ2rboY',
+                video_id: ['IaURBJ2rboY'],
                 source: '許伯&簡芝—倉鼠人',
                 img_pos: 'center'
             },
@@ -859,7 +869,7 @@
                 env_val: '6.5 - 7.5',
                 difficulty: 1,
                 description: '體側有類似斑馬的條紋而得名。個性活潑好動，喜歡群游，建議一次飼養 5 隻以上。對水質適應力極強，常被用來作為「闖缸魚」以建立硝化系統。',
-                video_id: '5l3oYTDBli0',
+                video_id: ['5l3oYTDBli0'],
                 source: 'Thongthong TV',
                 img_pos: 'center'
             },
@@ -877,7 +887,7 @@
                 env_val: '6.0 - 7.0',
                 difficulty: 2,
                 description: '水草缸中最受歡迎的配角。身上有一條明亮的藍色與紅色條紋，群游時如霓虹燈般閃爍。牠們膽子較小，建議飼養 10 隻以上，並提供茂密的水草作為躲避處。',
-                video_id: 'PbJ_a_oQjKQ', 
+                video_id: ['PbJ_a_oQjKQ'], 
                 source: 'AC草影水族',
                 img_pos: 'center'
             },
@@ -895,7 +905,7 @@
                 env_val: '4 - 8 dGH',
                 difficulty: 1,
                 description: '又稱玫瑰蝦或櫻花蝦，是清潔水族箱的好幫手。全身通紅，非常適合在綠色水草缸中作為點綴。對水質變化較敏感，脫殼時需要安靜的環境。',
-                video_id: 'r_g7qX4uG9w',
+                video_id: ['r_g7qX4uG9w'],
                 source: 'AC草影水族',
                 img_pos: 'center'
             },
@@ -915,7 +925,7 @@
                 env_val: '60% - 80%',
                 difficulty: 1,
                 description: '俗稱「招財蛙」，擁有一張大嘴，幾乎什麼都吃。飼養環境建議採「乾濕分離」，使用生化棉作為底材最為方便清潔。切勿餵食過量，以免造成消化不良。',
-                video_id: 'ALKqjilzjzg',
+                video_id: ['ALKqjilzjzg'],
                 source: '彼得爬寵',
                 img_pos: 'center'
             },
@@ -933,7 +943,7 @@
                 env_val: '50% - 70%',
                 difficulty: 2,
                 description: '來自澳洲的樹棲蛙類，皮膚呈蠟質，較耐乾燥。外表肥厚可愛，成體性格非常溫和，容易與人互動。需要較高的飼養箱並放置樹枝供其攀爬休息。',
-                video_id: 'zFUzKEStT4Y',
+                video_id: ['zFUzKEStT4Y'],
                 source: '彼得爬寵',
                 img_pos: 'top' 
             },
@@ -951,7 +961,7 @@
                 env_val: '70% - 90%',
                 difficulty: 3,
                 description: '雨林中的寶石，標誌性的紅眼睛與鮮綠身體非常迷人。牠們是完全夜行性的，白天會縮成一團睡覺，晚上才活動。對環境濕度要求極高，需要頻繁噴霧。',
-                video_id: 'xf8PBCM-Ae0',
+                video_id: ['xf8PBCM-Ae0'],
                 source: '蝌蚪老師與三桃',
                 img_pos: 'center 20%'
             },
@@ -969,7 +979,7 @@
                 env_val: '需冷水/高氧',
                 difficulty: 3,
                 description: '其實是墨西哥鈍口螈的幼體形式（幼態延續）。牠們非常怕熱，台灣夏季飼養通常需要冷水機或風扇降溫。擁有強大的再生能力，斷肢也能重新長出。',
-                video_id: 'YP6YyqN2Eok',
+                video_id: ['YP6YyqN2Eok'],
                 source: 'AC草影水族',
                 img_pos: 'center'
             },
@@ -1001,13 +1011,13 @@
                 aliases: ['紅耳龜', '巴西烏龜', 'red eared slider'],
                 tags: ['水龜', '澤龜', '新手', '好養', '雜食', '長壽', 'turtle', 'hardy'],
                 persona: ['beginner', 'interactive'],
-                image_url: 'https://cdn.hk01.com/di/media/images/dw/20240202/830035437182521344086491.jpeg/hIoMOeBKPVIXl8HcfnmJvSuKHcFHi3I7sjbSVrI20lY?v=w1920r16_9', // 更新圖片連結
+                image_url: 'https://cdn.hk01.com/di/media/images/dw/20240202/830035437182521344086491.jpeg/hIoMOeBKPVIXl8HcfnmJvSuKHcFHi3I7sjbSVrI20lY?v=w1920r16_9', 
                 temp: '25-28',
                 env_label: '環境類型',
                 env_val: '水陸兩棲 (需曬台)',
                 difficulty: 1,
                 description: '市面上最常見的寵物龜。適應力極強，對水質要求不高，但需要充足的陽光或UVB燈來合成維生素D3。成體體型較大，需要準備足夠大的飼養空間。',
-                video_id: 'x9-s4ElMxyI',
+                video_id: ['x9-s4ElMxyI'],
                 source: '香港爬道',
                 img_pos: 'center'
             },
@@ -1025,7 +1035,7 @@
                 env_val: '40% - 60% (需濕度躲避)',
                 difficulty: 1,
                 description: '爬蟲入門的必選物種。牠們不像一般壁虎會爬牆，且擁有眼瞼可以閉眼。性格非常溫和穩定，動作緩慢，花色基因選擇極多，是最好養的爬蟲之一。',
-                video_id: '5F5Bm3JPR9U',
+                video_id: ['5F5Bm3JPR9U'],
                 source: '香港爬道',
                 img_pos: 'center'
             },
@@ -1043,7 +1053,7 @@
                 env_val: '40% - 60%',
                 difficulty: 1,
                 description: '最受歡迎的寵物蛇之一。個性非常溫馴，極少攻擊人，且食慾通常很好，不容易拒食。體型適中，花色千變萬化，是非常適合新手的第一條蛇。',
-                video_id: '5xO097YkCa8',
+                video_id: ['5xO097YkCa8'],
                 source: '蝌蚪老師與三桃',
                 img_pos: 'center'
             },
@@ -1061,7 +1071,7 @@
                 env_val: '50% - 60%',
                 difficulty: 2,
                 description: '雖然是蟒蛇，但生性膽小，受到驚嚇時會把頭埋在身體裡縮成一顆球，因此得名。互動性雖然不高，但非常溫柔，幾乎不會咬人。需要注意溫度維持。',
-                video_id: 'dbgZEOLq4Bs',
+                video_id: ['dbgZEOLq4Bs'],
                 source: '鱷鄰居&沙西米 Croco Sashimi',
                 img_pos: 'center'
             },
@@ -1086,11 +1096,13 @@
         ];
 
         // --- 造景美學數據庫 ---
-        const landscapingData = [
+        // 修正：將 const 改為 let，確保可以被 Google Sheet 資料覆蓋
+        let landscapingData = [
             {
                 id: 'iwagumi',
                 title: '石組造景 (Iwagumi)',
                 tags: ['水族', '極簡', '高難度'],
+                // 使用網路公開圖庫，確保讀取穩定
                 image: 'https://images.unsplash.com/photo-1533601017-dc61895e03c0?q=80&w=2070&auto=format&fit=crop',
                 desc: '源自日本的造景風格，強調「奇數」岩石的擺放哲學（主石、副石、添石）。以石頭為骨架，搭配單一品種的地毯式水草（如迷你矮珍珠），創造出遼闊的草原感。看似簡單，但對藻類控制與石頭佈局要求極高。',
                 elements: ['青龍石/萬天石', '迷你矮珍珠/挖耳草', '強光', 'CO2設備']
@@ -1107,7 +1119,7 @@
                 id: 'paludarium',
                 title: '水陸生態缸 (Paludarium)',
                 tags: ['兩棲', '水陸', '熱門'],
-                image: 'https://i.pinimg.com/736x/87/40/2c/87402c5211995874c7c2514332152771.jpg',
+                image: 'https://i.pinimg.com/originals/87/40/2c/87402c5211995874c7c2514332152771.jpg',
                 desc: '同時包含「水下」與「陸上」區域的終極生態缸。利用高低落差做出流水與陸地，非常適合飼養蠑螈、青蛙或半水棲龜類。可以同時種植水草與陸生苔蘚、積水鳳梨。',
                 elements: ['發泡膠/石頭造陸', '沉水馬達(瀑布)', '苔蘚', '空氣鳳梨']
             },
@@ -1138,7 +1150,8 @@
         ];
 
         // --- 獸醫資料庫 (Mock Data) ---
-        const vetData = [
+        // 修改：將 const 改為 let，允許從 Google Sheet 更新資料
+        let vetData = [
             // --- 北部 ---
             { name: '侏羅紀野生動物專科', region: 'north', type: 'reptile', address: '台北市士林區', phone: '02-2832-1298', tags: ['爬蟲', '烏龜', '兩棲'] },
             { name: '不莱梅特殊寵物專科', region: 'north', type: 'reptile', address: '台北市大同區', phone: '02-2599-3919', tags: ['爬蟲', '鳥類', '鼠兔'] },
@@ -1159,6 +1172,196 @@
             { name: '蓋亞野生動物專科', region: 'south', type: 'reptile', address: '高雄市三民區', phone: '07-392-9359', tags: ['爬蟲', '兩棲'] },
             { name: '亞幸動物醫院', region: 'south', type: 'reptile', address: '高雄市苓雅區', phone: '07-726-5577', tags: ['爬蟲', '中獸醫'] }
         ];
+
+        // --- Google Sheet 設定 ---
+        // 請將您的 Google Sheet 發布為 CSV，並將連結貼入下方引號中
+        // 格式範例: "https://docs.google.com/spreadsheets/d/e/您的ID/pub?output=csv"
+        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTVcC7f1pGlK18BIZw303cOGavBhgePJkrS-B4ugeQQjZTI5hnUdulyXmhfzw-H1TJrxK0NGoxaFamB/pub?output=csv"; 
+
+        // 頁面載入時執行
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initData(); // 等待資料載入
+            renderNotifications();
+            showToast(); // 顯示推播
+            filterVets(); // 初始化獸醫列表
+        });
+
+        // 資料初始化函數
+        async function initData() {
+            const statusEl = document.getElementById('connection-status');
+
+            // 如果有設定 Google Sheet URL，則嘗試抓取
+            if (GOOGLE_SHEET_CSV_URL) {
+                try {
+                    console.log("正在嘗試從 Google Sheet 載入資料...");
+                    // 更新狀態：連線中
+                    if(statusEl) statusEl.innerHTML = `<span class="loading loading-spinner loading-xs"></span> Connecting to Cloud...`;
+
+                    // 加入 cache busting 避免讀到舊資料
+                    const response = await fetch(GOOGLE_SHEET_CSV_URL + '&t=' + new Date().getTime());
+                    
+                    // 檢查是否成功取得
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const csvText = await response.text();
+                    
+                    // 基本檢查：確保不是 HTML
+                    if (csvText.trim().startsWith("<!DOCTYPE html>") || csvText.includes("<html")) {
+                        console.error("錯誤：讀取到的不是 CSV，而是 HTML 網頁。");
+                        if(statusEl) {
+                            statusEl.innerHTML = `<div class="w-2 h-2 rounded-full bg-orange-400"></div> Auth Error (Local Data)`;
+                            statusEl.classList.add('text-orange-400', 'border-orange-900');
+                        }
+                        return; 
+                    }
+
+                    // 使用 PapaParse 解析 CSV
+                    const result = Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true
+                    });
+
+                    if (result.data && result.data.length > 0) {
+                        const sheetData = [];
+                        const sheetLandscaping = [];
+                        const sheetVetData = []; // 新增：暫存獸醫資料
+
+                        // 建立標題對照表 (處理中文括號問題)
+                        const headerMap = {
+                            'id': ['id'],
+                            'name': ['name', 'name (名稱)'],
+                            'sci_name': ['sci_name', 'sci_name (學名)'],
+                            'type': ['type', 'type (類型)'],
+                            'aliases': ['aliases', 'alias', 'aliases (別名)'],
+                            'tags': ['tags', 'tags (標籤)'],
+                            'persona': ['persona', 'persona (個性)'],
+                            'image_url': ['image_url', 'image_url (圖片連結)', 'img_url'],
+                            'temp': ['temp', 'temp (溫度)'],
+                            'env_label': ['env_label', 'env_label (環境標籤)'],
+                            'env_val': ['env_val', 'env_val (環境數值)'],
+                            'difficulty': ['difficulty', 'difficulty (難度)'],
+                            'description': ['description', 'description (描述)', 'desc'],
+                            'video_id': ['video_id', 'video_id (影片ID)'],
+                            'source': ['source', 'source (來源)'],
+                            'img_pos': ['img_pos', 'img_pos (圖片位置)']
+                        };
+
+                        const getValue = (row, keyName) => {
+                            const possibleHeaders = headerMap[keyName] || [keyName];
+                            for (const h of possibleHeaders) {
+                                if (row[h] !== undefined) return row[h];
+                            }
+                            return undefined;
+                        };
+
+                        const cleanUrl = (url) => {
+                            if (!url) return '';
+                            return url.replace(/[<>\\"]/g, '').trim();
+                        };
+
+                        result.data.forEach(row => {
+                            const id = getValue(row, 'id');
+                            const name = getValue(row, 'name');
+                            const type = getValue(row, 'type');
+                            let rawImgUrl = getValue(row, 'image_url');
+                            const imageUrl = cleanUrl(rawImgUrl);
+
+                            if (!id || !name) return;
+
+                            const rawAliases = getValue(row, 'aliases');
+                            const rawTags = getValue(row, 'tags');
+                            const rawPersona = getValue(row, 'persona');
+                            const rawEnvVal = getValue(row, 'env_val');
+                            const rawVideos = getValue(row, 'video_id');
+
+                            const aliases = rawAliases ? rawAliases.split(/[,，]/).map(s => s.trim()) : [];
+                            const tags = rawTags ? rawTags.split(/[,，]/).map(s => s.trim()) : [];
+                            const persona = rawPersona ? rawPersona.split(/[,，]/).map(s => s.trim()) : [];
+                            
+                            if (type === 'landscaping') {
+                                sheetLandscaping.push({
+                                    id: id,
+                                    title: name,
+                                    tags: tags,
+                                    image: imageUrl,
+                                    desc: getValue(row, 'description'),
+                                    elements: rawEnvVal ? rawEnvVal.split(/[,，]/).map(s => s.trim()) : []
+                                });
+                            } else if (type === 'vet') {
+                                // 新增：處理獸醫資料邏輯
+                                // 欄位借用對照：
+                                // name -> 醫院名稱
+                                // img_pos -> 地區 (north, central, south)
+                                // sci_name -> 科別 (reptile, aquatic, all)
+                                // description -> 地址
+                                // env_label -> 電話
+                                sheetVetData.push({
+                                    name: name,
+                                    region: getValue(row, 'img_pos'), 
+                                    type: getValue(row, 'sci_name'),  
+                                    address: getValue(row, 'description'),
+                                    phone: getValue(row, 'env_label'),
+                                    tags: tags
+                                });
+                            } else {
+                                let videos = [];
+                                if (rawVideos) {
+                                    if (rawVideos.includes(',') || rawVideos.includes('，')) {
+                                        videos = rawVideos.split(/[,，]/).map(v => v.trim());
+                                    } else {
+                                        videos = [rawVideos.trim()];
+                                    }
+                                }
+
+                                sheetData.push({
+                                    id: id,
+                                    name: name,
+                                    sci_name: getValue(row, 'sci_name'),
+                                    type: type,
+                                    aliases: aliases,
+                                    tags: tags,
+                                    persona: persona,
+                                    image_url: imageUrl,
+                                    temp: getValue(row, 'temp'),
+                                    env_label: getValue(row, 'env_label'),
+                                    env_val: rawEnvVal,
+                                    difficulty: parseInt(getValue(row, 'difficulty')) || 1,
+                                    description: getValue(row, 'description'),
+                                    video_id: videos,
+                                    source: getValue(row, 'source'),
+                                    img_pos: getValue(row, 'img_pos') || 'center'
+                                });
+                            }
+                        });
+
+                        if (sheetData.length > 0) speciesData = sheetData;
+                        if (sheetLandscaping.length > 0) landscapingData = sheetLandscaping;
+                        
+                        // 新增：如果成功讀取到獸醫資料，則覆蓋預設值
+                        if (sheetVetData.length > 0) {
+                            vetData = sheetVetData;
+                            console.log("Google Sheet 獸醫資料載入成功:", vetData);
+                        }
+
+                        console.log("成功載入 Google Sheet 資料!", speciesData);
+                        
+                        if(statusEl) {
+                            statusEl.innerHTML = `<div class="w-2 h-2 rounded-full bg-green-400"></div> Google Sheet Sync (Live)`;
+                            statusEl.classList.remove('border-gray-700', 'text-gray-500');
+                            statusEl.classList.add('border-green-900', 'text-green-400', 'bg-green-900/20');
+                        }
+                    }
+                } catch (error) {
+                    console.error("載入 Google Sheet 失敗:", error);
+                    if(statusEl) {
+                        statusEl.innerHTML = `<div class="w-2 h-2 rounded-full bg-orange-400"></div> Local Data (Offline Mode)`;
+                        statusEl.classList.add('text-orange-400', 'border-orange-900');
+                    }
+                }
+            }
+        }
 
         // 搜尋邏輯
         let currentSearchFilter = 'all';
@@ -1267,7 +1470,8 @@
 
                     div.innerHTML = `
                         <div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
-                            <img src="${species.image_url}" class="w-full h-full object-cover">
+                            <!-- 修改：加入 referrerpolicy="no-referrer" 以支援 Google Drive 圖片 -->
+                            <img src="${species.image_url}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
                         </div>
                         <div>
                             <div class="font-bold text-gray-200">${species.name}</div>
@@ -1319,14 +1523,6 @@
             if (!searchContainer.contains(e.target)) {
                 document.getElementById('search-results').classList.add('hidden');
             }
-        });
-
-
-        // 頁面載入時執行
-        window.addEventListener('DOMContentLoaded', () => {
-            renderNotifications();
-            showToast(); // 顯示推播
-            filterVets(); // 初始化獸醫列表
         });
 
         // 重置為分類選擇畫面
@@ -1401,7 +1597,7 @@
             const grid = document.getElementById('landscaping-grid');
             
             // 修改判斷邏輯：檢查是否有子元素 (避免被 HTML 註解影響)
-            if(grid.children.length === 0) { 
+            // if(grid.children.length === 0) { // 移除此行，強制每次重新渲染以確保資料最新
                 grid.innerHTML = ''; // 先清空既有的註解或空白
                 
                 landscapingData.forEach(item => {
@@ -1409,8 +1605,16 @@
                     card.className = 'group relative h-72 rounded-2xl overflow-hidden cursor-pointer border border-gray-800 hover:border-aqua transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl';
                     card.onclick = () => openStyleModal(item);
                     
+                    // 確保圖片載入錯誤時有替代方案
+                    const fallbackImage = 'https://images.unsplash.com/photo-1533601017-dc61895e03c0?q=80&w=2070&auto=format&fit=crop';
+                    
                     card.innerHTML = `
-                        <img src="${item.image}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:filter group-hover:brightness-75" alt="${item.title}">
+                        <!-- 修改：加入 referrerpolicy="no-referrer" 以支援 Google Drive 圖片 -->
+                        <img src="${item.image}" 
+                             referrerpolicy="no-referrer"
+                             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:filter group-hover:brightness-75" 
+                             alt="${item.title}"
+                             onerror="this.src='${fallbackImage}'">
                         <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90"></div>
                         <div class="absolute bottom-0 left-0 p-6 w-full translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
                             <div class="flex gap-2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
@@ -1422,11 +1626,15 @@
                     `;
                     grid.appendChild(card);
                 });
-            }
+            // } // End if
         }
 
         function openStyleModal(item) {
-            document.getElementById('style-modal-img').src = item.image;
+            const modalImg = document.getElementById('style-modal-img');
+            modalImg.src = item.image;
+            // 這裡不用特別設，因為 img 標籤可以用 setAttribute
+            modalImg.setAttribute('referrerpolicy', 'no-referrer');
+            
             document.getElementById('style-modal-title').innerText = item.title;
             document.getElementById('style-modal-desc').innerText = item.desc;
             
@@ -1635,5 +1843,4 @@
     </script>
 
 </body>
-
 </html>
