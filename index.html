@@ -717,10 +717,10 @@
             </div>
         </aside> 
         <nav>
-            <header class="footer-title text-gray-500">物種分類</header> 
-            <a class="link link-hover">熱帶魚類</a>
-            <a class="link link-hover">兩棲爬蟲</a>
-            <a class="link link-hover">水草造景</a>
+            <header class="footer-title text-gray-500">分類</header> 
+            <a class="link link-hover cursor-pointer" onclick="selectCategory('aquarium'); document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'})">水族圖鑑</a>
+            <a class="link link-hover cursor-pointer" onclick="selectCategory('amphibian'); document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'})">兩棲圖鑑</a>
+            <a class="link link-hover cursor-pointer" onclick="showLandscapingView(); document.getElementById('main-interface').scrollIntoView({behavior: 'smooth'})">造景美學</a>
         </nav> 
         <nav>
             <header class="footer-title text-gray-500">聯絡我們</header> 
@@ -1153,7 +1153,8 @@
         // 修改：將 const 改為 let，允許從 Google Sheet 更新資料
         let vetData = [
             // --- 北部 ---
-            { name: '侏羅紀野生動物專科', region: 'north', type: 'reptile', address: '台北市士林區', phone: '02-2832-1298', tags: ['爬蟲', '烏龜', '兩棲'] },
+            // 更新：已修正為桃園侏羅紀野生動物專科醫院資訊
+            { name: '侏羅紀野生動物專科醫院', region: 'north', type: 'reptile', address: '桃園市桃園區中正路1087號', phone: '03-358-1530', tags: ['爬蟲', '烏龜', '兩棲'] },
             { name: '不莱梅特殊寵物專科', region: 'north', type: 'reptile', address: '台北市大同區', phone: '02-2599-3919', tags: ['爬蟲', '鳥類', '鼠兔'] },
             { name: '亞馬森特寵專科', region: 'north', type: 'reptile', address: '台北市內湖區', phone: '02-8791-6453', tags: ['爬蟲', '兩棲', '外科'] },
             { name: '大肚魚水族醫院', region: 'north', type: 'aquatic', address: '新北市板橋區', phone: '02-2259-2688', tags: ['觀賞魚', '魚病'] },
